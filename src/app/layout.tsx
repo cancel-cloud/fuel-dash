@@ -1,0 +1,56 @@
+import type { Metadata } from "next";
+import "./globals.css";
+
+const GH_REPO = process.env.NEXT_PUBLIC_GITHUB_URL || "#";
+const GH_PROFILE = process.env.NEXT_PUBLIC_GITHUB_PROFILE || "https://github.com";
+
+export const metadata: Metadata = {
+  title: "Fuel Dashboard",
+  description: "Fuel stats powered by Appwrite + OpenAI",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="de" className="h-full">
+      <body className="min-h-screen">
+        {/* Header */}
+        <header className="border-b bg-white">
+          <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
+            <h1 className="text-xl font-semibold">Fuel Dashboard</h1>
+          </div>
+        </header>
+
+        {/* Main */}
+        <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+
+        {/* Footer (centered with links) */}
+        <footer className="mt-16 border-t bg-white">
+          <div className="mx-auto max-w-6xl px-6 py-6">
+            <div className="w-full flex flex-col items-center justify-center gap-2 text-sm text-neutral-600">
+              <div className="flex items-center gap-2">
+                <span>© {new Date().getFullYear()}</span>
+                <span>—</span>
+                <a
+                  className="underline hover:no-underline"
+                  href={GH_PROFILE}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Lukas Dienst
+                </a>
+              </div>
+              <a
+                className="underline hover:no-underline"
+                href={GH_REPO}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                GitHub Repository
+              </a>
+            </div>
+          </div>
+        </footer>
+      </body>
+    </html>
+  );
+}
