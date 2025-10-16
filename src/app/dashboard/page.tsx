@@ -3,7 +3,6 @@
 import Protected from "@/components/Protected";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { db, Query, storage, ID, Permission, Role } from "@/lib/appwrite";
-import type { FuelLog } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import FiltersBar from "@/components/filters/FiltersBar";
