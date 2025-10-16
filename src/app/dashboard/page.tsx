@@ -1,4 +1,3 @@
-// src/app/dashboard/page.tsx
 "use client";
 
 import Protected from "@/components/Protected";
@@ -13,6 +12,9 @@ import SpendChart from "@/components/charts/SpendChart";
 import { totalSpent, avgLiters, avgPricePerLiter } from "@/lib/compute";
 import { fmtEUR, startOfYearISO, endOfYearISO } from "@/lib/utils";
 
+type Granularity = "month" | "year";
+type Filters = { carId: string | null; granularity: Granularity; year: number | "all" };
+
 export default function DashboardPage() {
   return (
     <Protected>
@@ -22,9 +24,7 @@ export default function DashboardPage() {
 }
 
 function DashboardInner() {
-  const [filters, setFilters] = useState<{ carId: string | null; granularity: "month" | "year"; year: number | "all" }>({
-    carId: null, granularity: "month", year: "all"
-  });
+  const [filters, setFilters] = useState<Filters>({ carId: null, granularity: "month", year: "all" });
   const [logs, setLogs] = useState<FuelLog[]>([]);
   const [busy, setBusy] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
@@ -43,7 +43,7 @@ function DashboardInner() {
     const res = await db.listDocuments(
       process.env.NEXT_PUBLIC_DB_ID!,
       process.env.NEXT_PUBLIC_FUELLOGS_ID!,
-      q as any
+      q // <- no "as any"
     );
     setLogs(res.documents as FuelLog[]);
   }, [filters]);
@@ -64,7 +64,7 @@ function DashboardInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filters, sample: logs.slice(0, 150) })
       });
-      const j = await res.json();
+      const j = (await res.json()) as { text?: string; error?: string };
       setInsight(j.text ?? j.error ?? "No response");
     } finally { setBusy(false); }
   }
@@ -75,7 +75,7 @@ function DashboardInner() {
 
   async function onFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    e.target.value = ""; // allow re-picking same files next time
+    e.target.value = "";
     if (!files.length) return;
 
     const bucketId = process.env.NEXT_PUBLIC_RECEIPTS_BUCKET!;
@@ -105,13 +105,12 @@ function DashboardInner() {
       );
     } finally {
       setUploading(false);
-      fetchLogs().catch(console.error); // Function will insert DB rows shortly after
+      fetchLogs().catch(console.error);
     }
   }
 
   return (
     <div className="space-y-6">
-      {/* Overview + Upload button */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Overview</h2>
         <div className="flex items-center gap-3">
@@ -134,7 +133,6 @@ function DashboardInner() {
             onChange={onFilesSelected}
           />
 
-          {/* Styled to match SelectTrigger (outlined, same height/radius/focus ring) */}
           <Button
             type="button"
             variant="outline"
@@ -155,10 +153,8 @@ function DashboardInner() {
         </div>
       </div>
 
-      {/* Filters */}
       <FiltersBar onChange={setFilters} />
 
-      {/* Summary cards */}
       <section className="grid gap-4 md:grid-cols-3">
         <Card className="p-4">
           <div className="text-sm text-neutral-500">Total spent</div>
@@ -178,7 +174,6 @@ function DashboardInner() {
         </Card>
       </section>
 
-      {/* Charts */}
       <Card className="p-4">
         <h3 className="text-lg font-medium mb-3">Price per liter over time</h3>
         <PricePerLiterChart logs={logs} />
@@ -189,7 +184,6 @@ function DashboardInner() {
         <SpendChart logs={logs} mode={filters.granularity} />
       </Card>
 
-      {/* AI Insight */}
       <Card className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium">AI Insight (on demand)</h3>

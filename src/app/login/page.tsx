@@ -1,4 +1,3 @@
-// src/app/login/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -15,16 +14,16 @@ export default function LoginPage() {
   const [err, setErr] = useState<string | null>(null);
   const router = useRouter();
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
     setErr(null);
     try {
-      // Do NOT call deleteSession() here when not logged in — it triggers unauthorized errors.
       await account.createEmailPasswordSession(email, password);
       router.push("/dashboard");
-    } catch (e: any) {
-      setErr(e?.message ?? "Login failed");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Login failed";
+      setErr(message);
     } finally {
       setBusy(false);
     }
@@ -36,16 +35,14 @@ export default function LoginPage() {
       <form className="space-y-4" onSubmit={onSubmit}>
         <div>
           <Label>Email</Label>
-          <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
+          <Input value={email} onChange={(evt) => setEmail(evt.target.value)} type="email" required />
         </div>
         <div>
           <Label>Password</Label>
-          <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required />
+          <Input value={password} onChange={(evt) => setPassword(evt.target.value)} type="password" required />
         </div>
         {err && <p className="text-red-600 text-sm">{err}</p>}
-        <Button type="submit" disabled={busy} className="w-full">
-          {busy ? "…" : "Login"}
-        </Button>
+        <Button type="submit" disabled={busy} className="w-full">{busy ? "…" : "Login"}</Button>
       </form>
     </main>
   );

@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { FuelLog } from "@/lib/types";
 
-// We call the OpenAI Responses API directly via fetch.
-// Docs: platform.openai.com/docs/api-reference/responses
+type Granularity = "month" | "year";
+type Filters = { carId: string | null; granularity: Granularity; year: number | "all" };
+type InsightBody = { filters: Filters; sample: FuelLog[] };
+
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
 const MODEL = process.env.OPENAI_MODEL || "gpt-5-mini";
 
 export async function POST(req: NextRequest) {
   try {
-    const { filters, sample } = await req.json();
+    const { filters, sample } = (await req.json()) as InsightBody;
 
     const prompt = [
       "You are an assistant analyzing personal fuel logs. Summarize briefly:",
-      "- Any trends in price per liter.",
-      "- Which stations appear most.",
-      "- The total spend for the selected period and notable spikes.",
+      "- Trends in price per liter.",
+      "- Most frequent stations.",
+      "- Total spend for the selected period and notable spikes.",
       "Be concise (max ~120 words). Output plain text."
     ].join("\n");
 
-    // Create a tiny table summary as text for better grounding
-    const compact = (sample ?? []).slice(0, 80).map((l: any) =>
+    const compact = (sample ?? []).slice(0, 80).map((l: FuelLog) =>
       `${(l.date || l.$createdAt).slice(0,10)} | ${l.stationName ?? "?"} | total=${l.priceTotal ?? "?"} | L=${l.liters ?? "?"} | €/L=${l.pricePerLiter ?? "?"}`
     ).join("\n");
 
@@ -38,7 +40,6 @@ export async function POST(req: NextRequest) {
           ]
         }
       ],
-      // We want plain text back
       response_format: { type: "text" }
     };
 
@@ -52,15 +53,24 @@ export async function POST(req: NextRequest) {
     });
 
     if (!resp.ok) {
-      const err = await resp.text();
-      return NextResponse.json({ error: err }, { status: resp.status });
+      const errText = await resp.text();
+      return NextResponse.json({ error: errText }, { status: resp.status });
     }
 
-    const j = await resp.json();
-    // Responses API: most commonly the text is in output[0].content[0].text
-    const text = j.output?.[0]?.content?.[0]?.text ?? "No content";
+    const j: unknown = await resp.json();
+    // Narrow the loosely-typed Responses payload
+    const text =
+      typeof j === "object" &&
+      j !== null &&
+      "output" in j &&
+      Array.isArray((j as any).output) &&
+      (j as any).output[0]?.content?.[0]?.text
+        ? (j as any).output[0].content[0].text as string
+        : "No content";
+
     return NextResponse.json({ text });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Unknown error" }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
