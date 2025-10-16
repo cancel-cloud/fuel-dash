@@ -11,6 +11,7 @@ import PricePerLiterChart from "@/components/charts/PricePerLiterChart";
 import SpendChart from "@/components/charts/SpendChart";
 import { totalSpent, avgLiters, avgPricePerLiter } from "@/lib/compute";
 import { fmtEUR, startOfYearISO, endOfYearISO } from "@/lib/utils";
+import type { FuelLog } from "@/lib/types";
 
 type Granularity = "month" | "year";
 type Filters = { carId: string | null; granularity: Granularity; year: number | "all" };
@@ -34,19 +35,25 @@ function DashboardInner() {
   const [uploaded, setUploaded] = useState<{ ok: number; fail: number }>({ ok: 0, fail: 0 });
 
   const fetchLogs = useCallback(async () => {
-    const q: string[] = [Query.limit(500), Query.orderDesc("date")];
+    const q = [Query.limit(500), Query.orderDesc("date")] as string[];
+  
     if (filters.carId) q.push(Query.equal("carId", filters.carId));
     if (filters.year !== "all") {
       q.push(Query.greaterThanEqual("date", startOfYearISO(filters.year)));
       q.push(Query.lessThan("date", endOfYearISO(filters.year)));
     }
-    const res = await db.listDocuments(
+  
+    // 👇 Tell the SDK what model we expect back
+    const res = await db.listDocuments<FuelLog>(
       process.env.NEXT_PUBLIC_DB_ID!,
       process.env.NEXT_PUBLIC_FUELLOGS_ID!,
-      q // <- no "as any"
+      q
     );
-    setLogs(res.documents as FuelLog[]);
+  
+    // res.documents is now FuelLog[] with $ meta-fields
+    setLogs(res.documents);
   }, [filters]);
+  
 
   useEffect(() => { fetchLogs().catch(console.error); }, [fetchLogs]);
 

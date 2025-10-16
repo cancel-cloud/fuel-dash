@@ -30,29 +30,48 @@ export default function FiltersBar({ onChange }: Props) {
 
   useEffect(() => {
     (async () => {
-      const carsRes = await db
-        .listDocuments(process.env.NEXT_PUBLIC_DB_ID!, process.env.NEXT_PUBLIC_CARS_ID!, [Query.limit(200)])
-        .catch(() => null);
+      const dbId = process.env.NEXT_PUBLIC_DB_ID!;
+      const carsCol = process.env.NEXT_PUBLIC_CARS_ID!;
+      const logsCol = process.env.NEXT_PUBLIC_FUELLOGS_ID!;
 
-      const carDocs = (carsRes?.documents ?? []) as Car[];
+      // Fetch Cars (typed) — ignore failure gracefully
+      let carDocs: Car[] = [];
+      try {
+        const carsRes = await db.listDocuments<Car>(dbId, carsCol, [Query.limit(200)]);
+        carDocs = carsRes.documents;
+      } catch {
+        carDocs = [];
+      }
 
-      const logsRes = await db
-        .listDocuments(process.env.NEXT_PUBLIC_DB_ID!, process.env.NEXT_PUBLIC_FUELLOGS_ID!, [Query.orderDesc("date"), Query.limit(500)])
-        .catch(() => null);
+      // Fetch Logs (typed) — used for year options and fallback carIds
+      let logs: FuelLog[] = [];
+      try {
+        const logsRes = await db.listDocuments<FuelLog>(
+          dbId,
+          logsCol,
+          [Query.orderDesc("date"), Query.limit(500)]
+        );
+        logs = logsRes.documents;
+      } catch {
+        logs = [];
+      }
 
-      const logs = (logsRes?.documents ?? []) as FuelLog[];
-
-      const years = unique(logs.map((l) => new Date(l.date || l.$createdAt).getUTCFullYear())).sort((a, b) => a - b);
+      // Derive year options from logs
+      const years = unique(
+        logs.map((l) => new Date(l.date || l.$createdAt).getUTCFullYear())
+      ).sort((a, b) => a - b);
       setYearOptions(years);
+
       const nowYear = new Date().getUTCFullYear();
       setYear(years.includes(nowYear) ? nowYear : "all");
 
-      if (carDocs.length) {
+      // Prefer Cars collection; fallback to distinct carIds in logs
+      if (carDocs.length > 0) {
         setCars(carDocs);
-        setCarId(carDocs[0].$id ?? null);
+        setCarId(carDocs[0]?.$id ?? null);
       } else {
         const ids = unique(logs.map((l) => l.carId).filter(Boolean) as string[]);
-        const fallback: Car[] = ids.map((id) => ({ $id: id, brand: "", model: id }));
+        const fallback: Car[] = ids.map((id) => ({ $id: id, brand: "", model: id } as Car));
         setCars(fallback);
         if (ids.length) setCarId(ids[0]);
       }
@@ -83,6 +102,7 @@ export default function FiltersBar({ onChange }: Props) {
   return (
     <>
       <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-end">
+        {/* Car */}
         <div className="w-full md:w-64">
           <label className="text-sm block mb-1">Car</label>
           <Select
@@ -104,6 +124,7 @@ export default function FiltersBar({ onChange }: Props) {
           </Select>
         </div>
 
+        {/* Granularity */}
         <div>
           <label className="text-sm block mb-1">Granularity</label>
           <Tabs value={granularity} onValueChange={(v) => setGranularity(v === "year" ? "year" : "month")}>
@@ -118,6 +139,7 @@ export default function FiltersBar({ onChange }: Props) {
           </Tabs>
         </div>
 
+        {/* Year */}
         <div className="w-full md:w-48">
           <label className="text-sm block mb-1">Year</label>
           <Select
@@ -141,6 +163,7 @@ export default function FiltersBar({ onChange }: Props) {
         </div>
       </div>
 
+      {/* dynamic spacer only while a dropdown is open */}
       <div className="transition-[height] duration-150" style={{ height: spacerPx ? `${spacerPx + 8}px` : 0 }} />
     </>
   );
