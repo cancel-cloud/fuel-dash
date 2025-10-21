@@ -1,4 +1,4 @@
-import { Client, Databases, Storage, Query } from "node-appwrite";
+import { Client, Databases, Storage, Query, ID, Permission, Role } from "node-appwrite";
 import fetch from "node-fetch";
 
 // ---- helpers ----
@@ -204,7 +204,7 @@ export default async ({ req, res, log, error }) => {
     await db.createDocument(
       process.env.DB_ID,
       process.env.COLLECTION_ID,
-      "unique()",
+      ID.unique(),
       {
         carId: "audi_a4_2019",
         date: dateIso,
@@ -216,10 +216,13 @@ export default async ({ req, res, log, error }) => {
         receiptFileId: fileId,
         aiParsed: true
       },
-      [Permission.read(Role.users()),
-        Permission.write(Role.users())
+      [
+        Permission.read(Role.users()),
+        Permission.update(Role.users()),
+        /* No user needs to delete fuel logs
+        Permission.delete(Role.users()),*/
       ]
-    );
+    );    
 
     log("✅ Fuel log saved successfully");
     return res.json({

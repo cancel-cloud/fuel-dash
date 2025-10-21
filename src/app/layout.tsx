@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import "./globals.css";
 
 const GH_REPO = process.env.NEXT_PUBLIC_GITHUB_URL || "#";
@@ -16,7 +17,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Header */}
         <header className="border-b bg-white">
           <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-            <h1 className="text-xl font-semibold">Fuel Dashboard</h1>
+            <Link href="/" className="text-xl font-semibold text-neutral-900 hover:text-neutral-600 transition-colors">
+              Fuel Dashboard
+            </Link>
+            <nav className="flex items-center gap-6 text-sm font-medium text-neutral-700">
+              <Link href="/features" className="hover:text-neutral-500 transition-colors">
+                Features
+              </Link>
+              <Link href="/dashboard" className="hover:text-neutral-500 transition-colors">
+                Dashboard
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-md border border-neutral-200 px-3 py-1.5 hover:border-neutral-400 hover:text-neutral-900 transition-colors"
+              >
+                Log in
+              </Link>
+            </nav>
           </div>
         </header>
 

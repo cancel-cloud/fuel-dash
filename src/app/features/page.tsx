@@ -1,5 +1,6 @@
+
 import FeaturesShowcase from "@/components/FeaturesShowcase";
 
-export default function HomePage() {
+export default function FeaturesPage() {
   return <FeaturesShowcase />;
 }
